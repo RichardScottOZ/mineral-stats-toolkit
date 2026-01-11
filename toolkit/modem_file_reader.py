@@ -59,9 +59,14 @@ class ModelFileReader:
         with open(model_fn, 'r') as f:
             lines = f.readlines()
         
+        # Skip comment lines (starting with #)
+        line_idx = 0
+        while line_idx < len(lines) and lines[line_idx].strip().startswith('#'):
+            line_idx += 1
+        
         # Parse header line
         # Format: nx ny nz type [optional comments]
-        header = lines[0].strip().split()
+        header = lines[line_idx].strip().split()
         nx, ny, nz = int(header[0]), int(header[1]), int(header[2])
         
         # Determine if values are in log10 or linear
@@ -71,13 +76,14 @@ class ModelFileReader:
             value_type = 'LOGE'  # default
         
         # Read cell sizes for each direction
-        line_idx = 1
+        line_idx += 1
         
         # Read north cell sizes (y direction)
         nodes_north = []
         while len(nodes_north) < ny:
             line_data = lines[line_idx].strip().split()
-            nodes_north.extend([float(val) for val in line_data])
+            if line_data:  # Skip empty lines
+                nodes_north.extend([float(val) for val in line_data])
             line_idx += 1
         nodes_north = np.array(nodes_north[:ny])
         
@@ -85,7 +91,8 @@ class ModelFileReader:
         nodes_east = []
         while len(nodes_east) < nx:
             line_data = lines[line_idx].strip().split()
-            nodes_east.extend([float(val) for val in line_data])
+            if line_data:  # Skip empty lines
+                nodes_east.extend([float(val) for val in line_data])
             line_idx += 1
         nodes_east = np.array(nodes_east[:nx])
         
@@ -93,7 +100,8 @@ class ModelFileReader:
         nodes_z = []
         while len(nodes_z) < nz:
             line_data = lines[line_idx].strip().split()
-            nodes_z.extend([float(val) for val in line_data])
+            if line_data:  # Skip empty lines
+                nodes_z.extend([float(val) for val in line_data])
             line_idx += 1
         nodes_z = np.array(nodes_z[:nz])
         
@@ -118,10 +126,11 @@ class ModelFileReader:
             line_idx += 1
         
         # Reshape resistivity array to [nz, ny, nx]
+        # Data is ordered as: depth -> row (north) -> column (east)
         # Then transpose to [ny, nx, nz] to match mtpy convention
         res_array = np.array(res_values[:nz * ny * nx])
         res_model_3d = res_array.reshape(nz, ny, nx)
-        self.res_model = res_model_3d.transpose(1, 0, 2)  # [ny, nx, nz]
+        self.res_model = res_model_3d.transpose(1, 2, 0)  # [ny, nx, nz]
         
         # Convert from log10 to linear if necessary
         if value_type in ['LOGE', 'LOG10']:
