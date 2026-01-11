@@ -6,7 +6,6 @@ Kirkby, A., Czarnota, K., Huston, D., Champion, D., Doublier, M., Bedrosian, P.,
 
 ## Dependencies
 
-* mtpy
 * netCDF4
 * geopandas
 * mpl_toolkits.basemap - this is depreciated and should be replaced with cartopy
