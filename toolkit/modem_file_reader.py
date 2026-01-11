@@ -125,10 +125,19 @@ class ModelFileReader:
                 res_values.extend([float(val) for val in line_data])
             line_idx += 1
         
+        # Validate that we have enough values
+        expected_values = nz * ny * nx
+        if len(res_values) < expected_values:
+            raise ValueError(
+                f"Insufficient resistivity values in file. "
+                f"Expected {expected_values} values (nz={nz} * ny={ny} * nx={nx}), "
+                f"but only found {len(res_values)} values."
+            )
+        
         # Reshape resistivity array to [nz, ny, nx]
         # Data is ordered as: depth -> row (north) -> column (east)
         # Then transpose to [ny, nx, nz] to match mtpy convention
-        res_array = np.array(res_values[:nz * ny * nx])
+        res_array = np.array(res_values[:expected_values])
         res_model_3d = res_array.reshape(nz, ny, nx)
         self.res_model = res_model_3d.transpose(1, 2, 0)  # [ny, nx, nz]
         
@@ -143,6 +152,11 @@ class DataFileReader:
     
     This class replaces the functionality of mtpy.modeling.modem.Data
     for reading ModEM .dat files without the mtpy dependency.
+    
+    Note: This reader is provided for API compatibility but is not actively
+    used in the current codebase. The typical workflow uses stationxy_fn or
+    stationll_fn instead of data_fn. If you need to use data_fn, you may
+    need to extend this implementation to handle your specific data format.
     """
     
     def __init__(self, model_epsg=None):
@@ -218,8 +232,22 @@ class DataFileReader:
             self.center_point['east'] = np.mean(rel_east)
             self.center_point['north'] = np.mean(rel_north)
             
-            # Note: lon/lat will need to be calculated using projection
-            # This is typically done in the ModEM class using epsg_project
+            # Initialize lon/lat as copies of east/north for now
+            # In the typical workflow, these coordinates are in a local projection
+            # and would need to be converted to lon/lat using epsg_project
+            # However, this conversion is typically done in the ModEM class
+            # If you need proper lon/lat conversion from a data file, you may
+            # need to extend this implementation
+            self.station_locations.lon = rel_east.copy()
+            self.station_locations.lat = rel_north.copy()
+            self.center_point['lon'] = self.center_point['east']
+            self.center_point['lat'] = self.center_point['north']
+        else:
+            # No stations found - initialize with empty arrays
+            self.station_locations.lon = np.array([])
+            self.station_locations.lat = np.array([])
+            self.station_locations.rel_east = np.array([])
+            self.station_locations.rel_north = np.array([])
 
 
 class StationLocations:
