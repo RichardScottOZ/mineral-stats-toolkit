@@ -18,7 +18,7 @@ class to store commonly-used ModEM grid and station attributes
 
 """
 import os
-from mtpy.modeling.modem import Model, Data
+from toolkit.modem_file_reader import ModelFileReader, DataFileReader
 from toolkit.distance_to_contour_tools import epsg_project
 import numpy as np
 from shapely.geometry import MultiPoint,Point
@@ -31,11 +31,11 @@ class ModEM():
             
         self.wd = os.path.dirname(model_fn)
         
-        self.mObj = Model()
+        self.mObj = ModelFileReader()
         self.mObj.read_model_file(model_fn=model_fn)
         
         if data_fn is not None:
-            self.dObj = Data(model_epsg=epsg)
+            self.dObj = DataFileReader(model_epsg=epsg)
             self.dObj.read_data_file(data_fn=data_fn)
             self.slon = self.dObj.station_locations.lon
             self.slat = self.dObj.station_locations.lat
